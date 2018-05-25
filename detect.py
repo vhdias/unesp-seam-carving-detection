@@ -33,6 +33,10 @@ def main(_):
         tf.logging.error('Must set flag --image_dir.')
         return -1
 
+    # Prepare necessary directories that can be used during training
+    prepare_file_system()
+
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -53,6 +57,21 @@ if __name__ == '__main__':
         type=str,
         default='./tmp/intermediate_graph/',
         help='Where to save the intermediate graphs.'
+    )
+    parser.add_argument(
+        '--summaries_dir',
+        type=str,
+        default='./tmp/retrain_logs',
+        help='Where to save summary logs for TensorBoard.'
+    )
+    parser.add_argument(
+        '--intermediate_store_frequency',
+        type=int,
+        default=0,
+        help="""\
+             How many steps to store intermediate graph. If "0" then will not
+             store.\
+          """
     )
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
