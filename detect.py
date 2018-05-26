@@ -9,6 +9,16 @@ import tensorflow as tf
 
 
 def create_image_lists(image_dir, max_images, validation_percentage, testing_percentage):
+    """Create a list of the images on image_dir in three categories (training,
+       testing and validation)
+
+    Args:
+        image_dir: Directory with folder having images
+        max_images: Limit how many images will be selected
+        validation_percentage: Percentage of images that will be used for validation
+        testing_percentage: Percentage of images that will be used for testing
+
+    """
     if not tf.gfile.Exists(image_dir):
         tf.logging.error("Image directory '" + image_dir + "' not found.")
         return None
@@ -93,6 +103,39 @@ def prepare_file_system():
     return
 
 
+def get_image_path(image_lists, label_name, index, image_dir, category):
+    """Returns a path to an image for a label at the given index.
+
+    Args:
+        image_lists: OrderedDict of training images for each label.
+        label_name: Label string we want to get an image for.
+        index: Int offset of the image we want. This will be moduloed by the
+        available number of images for the label, so it can be arbitrarily large.
+        image_dir: Root folder string of the subfolders containing the training
+        images.
+        category: Name string of set to pull images from - training, testing, or
+        validation.
+
+    Returns:
+        File system path string to an image that meets the requested parameters.
+
+    """
+    if label_name not in image_lists:
+        tf.logging.fatal('Label does not exist %s.', label_name)
+    label_lists = image_lists[label_name]
+    if category not in label_lists:
+        tf.logging.fatal('Category does not exist %s.', category)
+    category_list = label_lists[category]
+    if not category_list:
+        tf.logging.fatal('Label %s has no images in the category %s.',
+                         label_name, category)
+    mod_index = index % len(category_list)
+    base_name = category_list[mod_index]
+    sub_dir = label_lists['dir']
+    full_path = os.path.join(image_dir, sub_dir, base_name)
+    return full_path
+
+
 def main(_):
     # Needed to make sure the logging output is visible.
     # See https://github.com/tensorflow/tensorflow/issues/3047
@@ -112,11 +155,21 @@ def main(_):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument(
+    required = parser.add_argument_group('required arguments')
+    required.add_argument(
         '--image_dir',
         type=str,
         default='',
-        help='Path to folders of labeled images.'
+        help='Path to folders of labeled images.',
+        required=True
+    )
+    required.add_argument(
+        '--method',
+        type=str,
+        default='',
+        choices=['YIN','YE_SHI','CHENG'],
+        help='Method for detecting the application of seam carving.',
+        required=True
     )
     parser.add_argument(
         '--output_graph',
