@@ -1,11 +1,15 @@
 import argparse
 import hashlib
+import numpy
 import re
 import collections
 import os.path
 import sys
 
 import tensorflow as tf
+import skimage.feature as sf
+
+from PIL import Image
 
 
 def create_image_lists(image_dir, max_images, validation_percentage, testing_percentage):
@@ -45,7 +49,7 @@ def create_image_lists(image_dir, max_images, validation_percentage, testing_per
         if len(file_list) > max_images:
             tf.logging.warning(
                 'WARNING: Folder {} have {} images more than the limit of {} images. Some images will '
-                'never be selected.'.format(dir_name, len(file_list),max_images))
+                'never be selected.'.format(dir_name, len(file_list), max_images))
         label_name = re.sub(r'[^a-z0-9]+', ' ', dir_name.lower())
         training_images = []
         testing_images = []
@@ -136,6 +140,37 @@ def get_image_path(image_lists, label_name, index, image_dir, category):
     return full_path
 
 
+def get_lbp_image(image, p=8, r=1.0, method='default'):
+    """Get the LBP image from a PIL.Image
+
+    Args:
+        image: PIL.Image
+        P: Number of circularly symmetric neighbour set points (quantization of the angular space).
+        R: Radius of circle (spatial resolution of the operator).
+        method: {‘default’, ‘ror’, ‘uniform’, ‘var’}
+                Method to determine the pattern.
+                    ‘default’: original local binary pattern which is gray scale but not rotation invariant.
+                    ‘ror’: extension of default implementation which is gray scale and rotation invariant.
+                    ‘uniform’: improved rotation invariance with uniform patterns and finer quantization of
+                               the angular space which is gray scale and rotation invariant.
+                    ‘nri_uniform’: non rotation-invariant uniform patterns variant which is only gray scale
+                               invariant (http://scikit-image.org/docs/dev/api/skimage.feature.html#r648eb9e75080-2).
+                    ‘var’: rotation invariant variance measures of the contrast of local image texture which is
+                           rotation but not gray scale invariant.
+
+    Returns:
+        LBP image array
+
+    """
+
+    # Get a array of the image converted to grayscale
+    array_image = numpy.array(image.convert(mode='L'))
+    # Generate the LBP from the array_image
+    lbp_image = sf.local_binary_pattern(array_image, p, r, method)
+
+    return lbp_image
+
+
 def main(_):
     # Needed to make sure the logging output is visible.
     # See https://github.com/tensorflow/tensorflow/issues/3047
@@ -167,7 +202,7 @@ if __name__ == '__main__':
         '--method',
         type=str,
         default='',
-        choices=['YIN','YE_SHI','CHENG'],
+        choices=['YIN', 'YE_SHI', 'CHENG'],
         help='Method for detecting the application of seam carving.',
         required=True
     )
