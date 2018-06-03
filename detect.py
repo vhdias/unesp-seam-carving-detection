@@ -5,9 +5,10 @@ import re
 import collections
 import os.path
 import sys
-
+import scipy
 import tensorflow as tf
-import skimage.feature as sf
+import skimage.feature as sfe
+import skimage.filters as sfi
 
 from PIL import Image
 
@@ -166,19 +167,33 @@ def get_lbp_image(image, p=8, r=1.0, method='default'):
     # Get a array of the image converted to grayscale
     array_image = numpy.array(image.convert(mode='L'))
     # Generate the LBP from the array_image
-    lbp_image = sf.local_binary_pattern(array_image, p, r, method)
+    lbp_image = sfe.local_binary_pattern(array_image, p, r, method)
 
     return lbp_image
 
 
+def first_derivative(image):
+    x_derivative = sfi.scharr_h(image)
+    y_derivative = sfi.scharr_v(image)
+    return x_derivative, y_derivative
+
+
+def get_features_Ryu_Lee(image):
+    # Detecting Trace of Seam Carving for Forensic Analysis; 2014
+    size = image.size
+    x_derivative, y_derivative = first_derivative(image)
+
+    # 4 features based on average energy
+    # Table 1
+    average_column_energy = x_derivative.sum() / size
+    average_row_energy = y_derivative.sum() / size
+    average_energy = (numpy.abs(x_derivative) + numpy.abs(y_derivative)).sum() / size
+    average_energy_difference = (numpy.abs(x_derivative) - numpy.abs(y_derivative)).sum() / size
+    result = [average_column_energy, average_energy, average_energy_difference, average_row_energy]
 def main(_):
     # Needed to make sure the logging output is visible.
     # See https://github.com/tensorflow/tensorflow/issues/3047
     tf.logging.set_verbosity(tf.logging.INFO)
-
-    if not FLAGS.image_dir:
-        tf.logging.error('Must set flag --image_dir.')
-        return -1
 
     # Prepare necessary directories that can be used during training
     prepare_file_system()
