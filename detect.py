@@ -179,8 +179,14 @@ def first_derivative(image):
 
 
 def minimum_cumulative_energy(energy):
-    #TODO
-    pass
+    result = numpy.copy(energy)
+    m, n = energy.shape
+    for i in range(m):
+        for j in range(1, n):
+            result[i, j] = energy[i, j] + min(result[max(i - 1, 0), j - 1],
+                                              result[i, j - 1],
+                                              result[min(i + 1, m - 1), j - 1])
+    return result
 
 
 def get_features_Ryu_Lee(image):
@@ -200,16 +206,17 @@ def get_features_Ryu_Lee(image):
     # 10 features based on the vertical and horizontal seam energy
     # Table 2
     energy = numpy.abs(x_derivative) + numpy.abs(y_derivative)
-    cumulative_minimum_energy = minimum_cumulative_energy(energy)
+    cumulative_minimum_energy = minimum_cumulative_energy(energy.transpose())
     vertical_seam_max = numpy.max(cumulative_minimum_energy[:, width - 1])
     vertical_seam_min = numpy.min(cumulative_minimum_energy[:, width - 1])
     vertical_seam_mean = numpy.mean(cumulative_minimum_energy[:, width - 1])
     vertical_seam_std = numpy.std(cumulative_minimum_energy[:, width - 1])
     vertical_seam_diff = vertical_seam_max - vertical_seam_min
-    horizontal_seam_max = numpy.max(cumulative_minimum_energy[height - 1, :])
-    horizontal_seam_min = numpy.min(cumulative_minimum_energy[height - 1, :])
-    horizontal_seam_mean = numpy.mean(cumulative_minimum_energy[height - 1, :])
-    horizontal_seam_std = numpy.std(cumulative_minimum_energy[height - 1, :])
+    cumulative_minimum_energy = minimum_cumulative_energy(energy)
+    horizontal_seam_max = numpy.max(cumulative_minimum_energy[:, width - 1])
+    horizontal_seam_min = numpy.min(cumulative_minimum_energy[:, width - 1])
+    horizontal_seam_mean = numpy.mean(cumulative_minimum_energy[:, width - 1])
+    horizontal_seam_std = numpy.std(cumulative_minimum_energy[:, width - 1])
     horizontal_seam_diff = horizontal_seam_max - horizontal_seam_min
     vertical_horizontal_seam_features = [vertical_seam_max, vertical_seam_min, vertical_seam_mean, vertical_seam_std,
                                          vertical_seam_diff, horizontal_seam_max, horizontal_seam_min,
