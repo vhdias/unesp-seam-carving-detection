@@ -190,6 +190,26 @@ def get_features_Ryu_Lee(image):
     average_energy = (numpy.abs(x_derivative) + numpy.abs(y_derivative)).sum() / size
     average_energy_difference = (numpy.abs(x_derivative) - numpy.abs(y_derivative)).sum() / size
     result = [average_column_energy, average_energy, average_energy_difference, average_row_energy]
+    # 10 features based on the vertical and horizontal seam energy
+    # TODO
+
+    # 4 features based on the noise level
+    # Table 3
+    noise = image - scipy.signal.wiener(image, 5)
+    noise_mean = noise.sum() / size  # feature
+    noise_less_mean = noise - noise_mean
+    noise_standart_deviation = noise_less_mean.std()  # feature
+    noise_less_mean_divided_std = noise_less_mean / noise_standart_deviation
+    noise_skewness = (noise_less_mean_divided_std ** 2).sum() / size  # feature
+    noise_kurtosis = (noise_less_mean_divided_std ** 3).sum() / size  # feature
+    result.append(noise_mean)
+    result.append(noise_standart_deviation)
+    result.append(noise_kurtosis)
+    result.append(noise_skewness)
+
+    return result
+
+
 def main(_):
     # Needed to make sure the logging output is visible.
     # See https://github.com/tensorflow/tensorflow/issues/3047
