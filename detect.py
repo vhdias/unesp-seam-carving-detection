@@ -178,9 +178,15 @@ def first_derivative(image):
     return x_derivative, y_derivative
 
 
+def minimum_cumulative_energy(energy):
+    #TODO
+    pass
+
+
 def get_features_Ryu_Lee(image):
     # Detecting Trace of Seam Carving for Forensic Analysis; 2014
     size = image.size
+    height, width = image.shape
     x_derivative, y_derivative = first_derivative(image)
 
     # 4 features based on average energy
@@ -189,9 +195,26 @@ def get_features_Ryu_Lee(image):
     average_row_energy = y_derivative.sum() / size
     average_energy = (numpy.abs(x_derivative) + numpy.abs(y_derivative)).sum() / size
     average_energy_difference = (numpy.abs(x_derivative) - numpy.abs(y_derivative)).sum() / size
-    result = [average_column_energy, average_energy, average_energy_difference, average_row_energy]
+    average_energy_features = [average_column_energy, average_energy, average_energy_difference, average_row_energy]
+
     # 10 features based on the vertical and horizontal seam energy
-    # TODO
+    # Table 2
+    energy = numpy.abs(x_derivative) + numpy.abs(y_derivative)
+    cumulative_minimum_energy = minimum_cumulative_energy(energy)
+    vertical_seam_max = numpy.max(cumulative_minimum_energy[:, width - 1])
+    vertical_seam_min = numpy.min(cumulative_minimum_energy[:, width - 1])
+    vertical_seam_mean = numpy.mean(cumulative_minimum_energy[:, width - 1])
+    vertical_seam_std = numpy.std(cumulative_minimum_energy[:, width - 1])
+    vertical_seam_diff = vertical_seam_max - vertical_seam_min
+    horizontal_seam_max = numpy.max(cumulative_minimum_energy[height - 1, :])
+    horizontal_seam_min = numpy.min(cumulative_minimum_energy[height - 1, :])
+    horizontal_seam_mean = numpy.mean(cumulative_minimum_energy[height - 1, :])
+    horizontal_seam_std = numpy.std(cumulative_minimum_energy[height - 1, :])
+    horizontal_seam_diff = horizontal_seam_max - horizontal_seam_min
+    vertical_horizontal_seam_features = [vertical_seam_max, vertical_seam_min, vertical_seam_mean, vertical_seam_std,
+                                         vertical_seam_diff, horizontal_seam_max, horizontal_seam_min,
+                                         horizontal_seam_mean, horizontal_seam_std,
+                                         horizontal_seam_diff]
 
     # 4 features based on the noise level
     # Table 3
@@ -202,12 +225,9 @@ def get_features_Ryu_Lee(image):
     noise_less_mean_divided_std = noise_less_mean / noise_standart_deviation
     noise_skewness = (noise_less_mean_divided_std ** 2).sum() / size  # feature
     noise_kurtosis = (noise_less_mean_divided_std ** 3).sum() / size  # feature
-    result.append(noise_mean)
-    result.append(noise_standart_deviation)
-    result.append(noise_kurtosis)
-    result.append(noise_skewness)
+    noise_level_features = [noise_mean, noise_standart_deviation, noise_kurtosis, noise_skewness]
 
-    return result
+    return average_energy_features, vertical_horizontal_seam_features, noise_level_features
 
 
 def main(_):
