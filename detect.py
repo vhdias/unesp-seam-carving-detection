@@ -5,13 +5,8 @@ import re
 import collections
 import os.path
 import sys
-import scipy
 import tensorflow as tf
-import skimage.feature as sfe
-import skimage.filters as sfi
-
-from PIL import Image
-
+import Descriptor
 
 def create_image_lists(image_dir, max_images, validation_percentage, testing_percentage):
     """Create a list of the images on image_dir in three categories (training,
@@ -141,82 +136,27 @@ def get_image_path(image_lists, label_name, index, image_dir, category):
     return full_path
 
 
-def get_lbp_image(image, p=8, r=1.0, method='default'):
-    """Get the LBP image from a PIL.Image
-
-    Args:
-        image: PIL.Image
-        P: Number of circularly symmetric neighbour set points (quantization of the angular space).
-        R: Radius of circle (spatial resolution of the operator).
-        method: {‘default’, ‘ror’, ‘uniform’, ‘var’}
-                Method to determine the pattern.
-                    ‘default’: original local binary pattern which is gray scale but not rotation invariant.
-                    ‘ror’: extension of default implementation which is gray scale and rotation invariant.
-                    ‘uniform’: improved rotation invariance with uniform patterns and finer quantization of
-                               the angular space which is gray scale and rotation invariant.
-                    ‘nri_uniform’: non rotation-invariant uniform patterns variant which is only gray scale
-                               invariant (http://scikit-image.org/docs/dev/api/skimage.feature.html#r648eb9e75080-2).
-                    ‘var’: rotation invariant variance measures of the contrast of local image texture which is
-                           rotation but not gray scale invariant.
-
-    Returns:
-        LBP image array
-
-    """
-
-    # Get a array of the image converted to grayscale
-    array_image = numpy.array(image.convert(mode='L'))
-    # Generate the LBP from the array_image
-    lbp_image = sfe.local_binary_pattern(array_image, p, r, method)
-
-    return lbp_image
-
-
-def first_derivative(image):
-    x_derivative = sfi.scharr_h(image)
-    y_derivative = sfi.scharr_v(image)
-    return x_derivative, y_derivative
-
-
-def minimum_cumulative_energy(energy):
-    result = numpy.copy(energy)
-    m, n = energy.shape
-    for i in range(m):
-        for j in range(1, n):
-            result[i, j] = energy[i, j] + min(result[max(i - 1, 0), j - 1],
-                                              result[i, j - 1],
-                                              result[min(i + 1, m - 1), j - 1])
-    return result
-
-
-def get_features_Ryu_Lee(image):
+def get_features_Ryu_Lee(image: Descriptor.ImageDescriptor):
     # Detecting Trace of Seam Carving for Forensic Analysis; 2014
-    size = image.size
-    height, width = image.shape
-    x_derivative, y_derivative = first_derivative(image)
-
     # 4 features based on average energy
     # Table 1
-    average_column_energy = x_derivative.sum() / size
-    average_row_energy = y_derivative.sum() / size
-    average_energy = (numpy.abs(x_derivative) + numpy.abs(y_derivative)).sum() / size
-    average_energy_difference = (numpy.abs(x_derivative) - numpy.abs(y_derivative)).sum() / size
+    average_column_energy = image.gradient_x.sum() / image.size
+    average_row_energy = image.gradient_y.sum() / image.size
+    average_energy = image.energy.sum() / image.size
+    average_energy_difference = (numpy.abs(image.gradient_x) - numpy.abs(image.gradient_y)).sum() / image.size
     average_energy_features = [average_column_energy, average_energy, average_energy_difference, average_row_energy]
 
     # 10 features based on the vertical and horizontal seam energy
     # Table 2
-    energy = numpy.abs(x_derivative) + numpy.abs(y_derivative)
-    cumulative_minimum_energy = minimum_cumulative_energy(energy.transpose())
-    vertical_seam_max = numpy.max(cumulative_minimum_energy[:, height - 1])
-    vertical_seam_min = numpy.min(cumulative_minimum_energy[:, height - 1])
-    vertical_seam_mean = numpy.mean(cumulative_minimum_energy[:, height - 1])
-    vertical_seam_std = numpy.std(cumulative_minimum_energy[:, height - 1])
+    vertical_seam_max = numpy.max(image.vertical_cumulative_energy_transposed[:, image.height - 1])
+    vertical_seam_min = numpy.min(image.vertical_cumulative_energy_transposed[:, image.height - 1])
+    vertical_seam_mean = numpy.mean(image.vertical_cumulative_energy_transposed[:, image.height - 1])
+    vertical_seam_std = numpy.std(image.vertical_cumulative_energy_transposed[:, image.height - 1])
     vertical_seam_diff = vertical_seam_max - vertical_seam_min
-    cumulative_minimum_energy = minimum_cumulative_energy(energy)
-    horizontal_seam_max = numpy.max(cumulative_minimum_energy[:, width - 1])
-    horizontal_seam_min = numpy.min(cumulative_minimum_energy[:, width - 1])
-    horizontal_seam_mean = numpy.mean(cumulative_minimum_energy[:, width - 1])
-    horizontal_seam_std = numpy.std(cumulative_minimum_energy[:, width - 1])
+    horizontal_seam_max = numpy.max(image.horizontal_cumulative_energy[:, image.width - 1])
+    horizontal_seam_min = numpy.min(image.horizontal_cumulative_energy[:, image.width - 1])
+    horizontal_seam_mean = numpy.mean(image.horizontal_cumulative_energy[:, image.width - 1])
+    horizontal_seam_std = numpy.std(image.horizontal_cumulative_energy[:, image.width - 1])
     horizontal_seam_diff = horizontal_seam_max - horizontal_seam_min
     vertical_horizontal_seam_features = [vertical_seam_max, vertical_seam_min, vertical_seam_mean, vertical_seam_std,
                                          vertical_seam_diff, horizontal_seam_max, horizontal_seam_min,
@@ -225,40 +165,32 @@ def get_features_Ryu_Lee(image):
 
     # 4 features based on the noise level
     # Table 3
-    noise = image - scipy.signal.wiener(image, 5)
-    noise_mean = noise.sum() / size  # feature
-    noise_less_mean = noise - noise_mean
+    noise_mean = image.noise.sum() / image.size  # feature
+    noise_less_mean = image.noise - noise_mean
     noise_standart_deviation = noise_less_mean.std()  # feature
     noise_less_mean_divided_std = noise_less_mean / noise_standart_deviation
-    noise_skewness = (noise_less_mean_divided_std ** 2).sum() / size  # feature
-    noise_kurtosis = (noise_less_mean_divided_std ** 3).sum() / size  # feature
+    noise_skewness = (noise_less_mean_divided_std ** 2).sum() / image.size  # feature
+    noise_kurtosis = (noise_less_mean_divided_std ** 3).sum() / image.size  # feature
     noise_level_features = [noise_mean, noise_standart_deviation, noise_kurtosis, noise_skewness]
 
     return average_energy_features, vertical_horizontal_seam_features, noise_level_features
 
 
-def get_features_half_seam(image):
+def get_features_half_seam(image: Descriptor.ImageDescriptor):
     # Detecting seam carving based image resizing using local binary patterns; 2015
     # Ting Yin, Gaobo Yang, Leida Li, Dengyong Zhang, Xingming Sun
-    height, width = image.shape
-    x_derivative, y_derivative = first_derivative(image)
-
     # 6 features based on the vertical and horizontal seam energy
     # Table 1
-    energy = numpy.abs(x_derivative) + numpy.abs(y_derivative)
-    cumulative_minimum_energy = minimum_cumulative_energy(energy.transpose())
-    vertical_seam_max = numpy.max(cumulative_minimum_energy[:, height - 1][0:round(width/2)])
-    vertical_seam_min = numpy.min(cumulative_minimum_energy[:, height - 1][0:round(width/2)])
-    vertical_seam_mean = numpy.mean(cumulative_minimum_energy[:, height - 1][0:round(width/2)])
-    cumulative_minimum_energy = minimum_cumulative_energy(energy)
-    horizontal_seam_max = numpy.max(cumulative_minimum_energy[:, width - 1][0:round(height/2)])
-    horizontal_seam_min = numpy.min(cumulative_minimum_energy[:, width - 1][0:round(height/2)])
-    horizontal_seam_mean = numpy.mean(cumulative_minimum_energy[:, width - 1][0:round(height/2)])
+    vertical_seam_max = numpy.max(image.vertical_cumulative_energy_transposed[:, image.height - 1][0:round(image.width/2)])
+    vertical_seam_min = numpy.min(image.vertical_cumulative_energy_transposed[:, image.height - 1][0:round(image.width/2)])
+    vertical_seam_mean = numpy.mean(image.vertical_cumulative_energy_transposed[:, image.height - 1][0:round(image.width/2)])
+    horizontal_seam_max = numpy.max(image.horizontal_cumulative_energy[:, image.width - 1][0:round(image.height/2)])
+    horizontal_seam_min = numpy.min(image.horizontal_cumulative_energy[:, image.width - 1][0:round(image.height/2)])
+    horizontal_seam_mean = numpy.mean(image.horizontal_cumulative_energy[:, image.width - 1][0:round(image.height/2)])
     half_seam_features = [vertical_seam_max, vertical_seam_min, vertical_seam_mean, horizontal_seam_max,
                                          horizontal_seam_min, horizontal_seam_mean]
 
     return half_seam_features
-
 
 
 def main(_):
