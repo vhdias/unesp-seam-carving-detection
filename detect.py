@@ -207,10 +207,10 @@ def get_features_Ryu_Lee(image):
     # Table 2
     energy = numpy.abs(x_derivative) + numpy.abs(y_derivative)
     cumulative_minimum_energy = minimum_cumulative_energy(energy.transpose())
-    vertical_seam_max = numpy.max(cumulative_minimum_energy[:, width - 1])
-    vertical_seam_min = numpy.min(cumulative_minimum_energy[:, width - 1])
-    vertical_seam_mean = numpy.mean(cumulative_minimum_energy[:, width - 1])
-    vertical_seam_std = numpy.std(cumulative_minimum_energy[:, width - 1])
+    vertical_seam_max = numpy.max(cumulative_minimum_energy[:, height - 1])
+    vertical_seam_min = numpy.min(cumulative_minimum_energy[:, height - 1])
+    vertical_seam_mean = numpy.mean(cumulative_minimum_energy[:, height - 1])
+    vertical_seam_std = numpy.std(cumulative_minimum_energy[:, height - 1])
     vertical_seam_diff = vertical_seam_max - vertical_seam_min
     cumulative_minimum_energy = minimum_cumulative_energy(energy)
     horizontal_seam_max = numpy.max(cumulative_minimum_energy[:, width - 1])
@@ -235,6 +235,30 @@ def get_features_Ryu_Lee(image):
     noise_level_features = [noise_mean, noise_standart_deviation, noise_kurtosis, noise_skewness]
 
     return average_energy_features, vertical_horizontal_seam_features, noise_level_features
+
+
+def get_features_half_seam(image):
+    # Detecting seam carving based image resizing using local binary patterns; 2015
+    # Ting Yin, Gaobo Yang, Leida Li, Dengyong Zhang, Xingming Sun
+    height, width = image.shape
+    x_derivative, y_derivative = first_derivative(image)
+
+    # 6 features based on the vertical and horizontal seam energy
+    # Table 1
+    energy = numpy.abs(x_derivative) + numpy.abs(y_derivative)
+    cumulative_minimum_energy = minimum_cumulative_energy(energy.transpose())
+    vertical_seam_max = numpy.max(cumulative_minimum_energy[:, height - 1][0:round(width/2)])
+    vertical_seam_min = numpy.min(cumulative_minimum_energy[:, height - 1][0:round(width/2)])
+    vertical_seam_mean = numpy.mean(cumulative_minimum_energy[:, height - 1][0:round(width/2)])
+    cumulative_minimum_energy = minimum_cumulative_energy(energy)
+    horizontal_seam_max = numpy.max(cumulative_minimum_energy[:, width - 1][0:round(height/2)])
+    horizontal_seam_min = numpy.min(cumulative_minimum_energy[:, width - 1][0:round(height/2)])
+    horizontal_seam_mean = numpy.mean(cumulative_minimum_energy[:, width - 1][0:round(height/2)])
+    half_seam_features = [vertical_seam_max, vertical_seam_min, vertical_seam_mean, horizontal_seam_max,
+                                         horizontal_seam_min, horizontal_seam_mean]
+
+    return half_seam_features
+
 
 
 def main(_):
