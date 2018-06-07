@@ -2,13 +2,14 @@ import numpy
 import scipy
 import skimage.feature as sfe
 import skimage.filters as sfi
-
+import os.path
 from PIL import Image
 
 
 class ImageDescriptor:
     def __init__(self, image_path):
         self.image_path = image_path
+        self.image_name = os.path.basename(self.image_path)
         self.image_pil = Image.open(self.image_path)
         self.image_array_grayscale = numpy.array(self.image_pil.convert(mode='L'))
         self.height, self.width = self.image_array_grayscale.shape
@@ -49,8 +50,8 @@ class ImageDescriptor:
         return lbp_image
 
     def image_gradient(self, image):
-        x_derivative = sfi.scharr_h(image)
-        y_derivative = sfi.scharr_v(image)
+        x_derivative = sfi.sobel_h(image)
+        y_derivative = sfi.sobel_v(image)
         return x_derivative, y_derivative
 
     def minimum_cumulative_energy(self, energy):
