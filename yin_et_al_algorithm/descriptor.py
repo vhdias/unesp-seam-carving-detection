@@ -3,7 +3,8 @@ import scipy
 import skimage.feature as sfe
 import skimage.filters as sfi
 import os.path
-from PIL import Image
+from PIL import Image, ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class ImageDescriptor:
