@@ -20,6 +20,8 @@ class ImageDescriptor:
         self.noise = self.image_lbp - scipy.signal.wiener(self.image_lbp, 5)
         self.vertical_cumulative_energy_transposed = self.minimum_cumulative_energy(self.energy.transpose())
         self.horizontal_cumulative_energy = self.minimum_cumulative_energy(self.energy)
+        del self.image_pil
+        del self.image_array_grayscale
 
     def get_lbp_image(self, image, p=8, r=1.0, method='default'):
         """Get the LBP image from a PIL.Image
