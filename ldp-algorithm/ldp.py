@@ -12,15 +12,19 @@ class LDP:
 	ANGLE_DIS = {0: (0, 1), 90: (-1, 0)}
 	SQRT_2 = np.sqrt(2).astype(np.float32)
 	SQRT_2_DIV_2 = SQRT_2 / 2
-	INTER_POINTS = {1: {1: (1 - SQRT_2_DIV_2, 1 - SQRT_2_DIV_2), 2: (1 - SQRT_2_DIV_2, -1 + SQRT_2_DIV_2),
-	                    3: (-1 + SQRT_2_DIV_2, -1 + SQRT_2_DIV_2), 4: (-1 + SQRT_2_DIV_2, 1 - SQRT_2_DIV_2)},
-	                2: {1: (1 - SQRT_2, 1 - SQRT_2), 2: (1 - SQRT_2, -1 + SQRT_2),
-	                    3: (-1 + SQRT_2, -1 + SQRT_2), 4: (-1 + SQRT_2, 1 - SQRT_2)}}
+	INTER_POINTS = {1: {1: (1 - SQRT_2_DIV_2, 1 - SQRT_2_DIV_2),
+	                    2: (1 - SQRT_2_DIV_2, -1 + SQRT_2_DIV_2),
+	                    3: (-1 + SQRT_2_DIV_2, -1 + SQRT_2_DIV_2),
+	                    4: (-1 + SQRT_2_DIV_2, 1 - SQRT_2_DIV_2)},
+	                2: {1: (1 - SQRT_2, 1 - SQRT_2),
+	                    2: (1 - SQRT_2, -1 + SQRT_2),
+	                    3: (-1 + SQRT_2, -1 + SQRT_2),
+	                    4: (-1 + SQRT_2, 1 - SQRT_2)}}
 
-	def set_image(self, image):
+	def set_image(self, image_path):
 		try:
 			# Convert image to grayscale
-			self.image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+			self.image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 			# Shape = image dimensions
 			self.height, self.width = self.image.shape
 		except ValueError:
@@ -42,10 +46,10 @@ class LDP:
 		except IndexError:
 			return 0
 
-	def __init__(self, image):
+	def __init__(self, image_path):
 		self.image = None
 		self.height, self.width = 0, 0
-		self.set_image(image)
+		self.set_image(image_path)
 		# inter_values/derivatives - values ​​outside the pixel center
 		self.derivative, self.ldp, self.inter_values, self.inter_derivatives = {}, {}, {}, {}
 		self.histograms = {}

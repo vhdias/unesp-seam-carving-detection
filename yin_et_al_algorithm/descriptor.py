@@ -3,17 +3,15 @@ import scipy
 import skimage.feature as sfe
 import skimage.filters as sfi
 import os.path
-from PIL import Image, ImageFile
-
-ImageFile.LOAD_TRUNCATED_IMAGES = True
+import cv2
 
 
 class ImageDescriptor:
     def __init__(self, image_path):
         self.image_path = image_path
         self.image_name = os.path.basename(self.image_path)
-        self.image_pil = Image.open(self.image_path)
-        self.image_array_grayscale = numpy.array(self.image_pil.convert(mode='L'))
+        # Convert image to grayscale
+        self.image_array_grayscale = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         self.height, self.width = self.image_array_grayscale.shape
         self.size = self.image_array_grayscale.size
         self.image_lbp = self.get_lbp_image(self.image_array_grayscale)
@@ -22,14 +20,12 @@ class ImageDescriptor:
         self.noise = self.image_lbp - scipy.signal.wiener(self.image_lbp, 5)
         self.vertical_cumulative_energy_transposed = self.minimum_cumulative_energy(self.energy.transpose())
         self.horizontal_cumulative_energy = self.minimum_cumulative_energy(self.energy)
-        del self.image_pil
-        del self.image_array_grayscale
 
-    def get_lbp_image(self, image, p=8, r=1.0, method='default'):
-        """Get the LBP image from a PIL.Image
+    @staticmethod
+    def get_lbp_image(image, p=8, r=1.0, method='default'):
+        """Get the LBP image from a grayscale image
 
         Args:
-            image: Grayscale image numpy array
             P: Number of circularly symmetric neighbour set points (quantization of the angular space).
             R: Radius of circle (spatial resolution of the operator).
             method: {‘default’, ‘ror’, ‘uniform’, ‘var’}

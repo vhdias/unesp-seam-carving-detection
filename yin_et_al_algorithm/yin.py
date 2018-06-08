@@ -4,6 +4,7 @@ import tensorflow as tf
 from yin_et_al_algorithm import descriptor, features
 from joblib import Parallel, delayed
 
+
 class Yin:
     def __init__(self, image_list, force=False, skip=False, save_loop=10, n_jobs=4):
         self.image_list = image_list
@@ -15,7 +16,7 @@ class Yin:
         self.generate_csv()
 
     def generate_csv(self):
-        if self.skip:
+        if self.skip and not self.force:
             for label in self.image_list.list:
                 try:
                     df = pd.read_csv('{}_yin.csv'.format(label), index_col=0)
@@ -23,6 +24,12 @@ class Yin:
                     df = pd.DataFrame()
                 self.df[label] = df.T
             return
+        if self.force:
+            for label in self.image_list.list:
+                try:
+                    os.remove('{}_yin.csv'.format(label))
+                except FileNotFoundError:
+                    pass
         for label in self.image_list.list:
             try:
                 df = pd.read_csv('{}_yin.csv'.format(label), index_col=0)
@@ -45,15 +52,15 @@ class Yin:
                         if df.size == 0:
                             df = pd.concat([df, image_df])
                         else:
-                            df = pd.merge(df, image_df, how='outer', left_index=True, right_index=True)
-                    if modified and i % self.save_loop == 0:
+                            df = pd.merge(df, image_df, how='outer', left_index=True, right_index=True, copy=False)
+                    if modified:
                         df.to_csv('{}_yin.csv'.format(label))
             df.to_csv('{}_yin.csv'.format(label))
             self.df[label] = df.T
 
     def get_features_batch(self, df, label, category, index_base, i):
         path = self.image_list.get_image_path(label, index_base + i, category)
-        if not self.force and os.path.basename(path) in df:
+        if os.path.basename(path) in df:
             return
         image_df = self.get_features(path)
         return image_df

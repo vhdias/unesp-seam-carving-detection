@@ -108,3 +108,6 @@ ENV/
 
 # Image directories
 ldp-algorithm/imagens
+
+# CSV files
+*.csv

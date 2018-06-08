@@ -72,20 +72,17 @@ def get_features_half_seam(image_descriptor):
     # 6 features based on the vertical and horizontal seam energy
     # Table 1
     vertical_half_seam_max = np.max(
-        image_descriptor.vertical_cumulative_energy_transposed[0:round(image_descriptor.width / 2),
-                                                               image_descriptor.height - 1])
+        image_descriptor.vertical_cumulative_energy_transposed[:, round((image_descriptor.height - 1)/2)])
     vertical_half_seam_min = np.min(
-        image_descriptor.vertical_cumulative_energy_transposed[0:round(image_descriptor.width / 2),
-                                                               image_descriptor.height - 1])
+        image_descriptor.vertical_cumulative_energy_transposed[:, round((image_descriptor.height - 1)/2)])
     vertical_half_seam_mean = np.mean(
-        image_descriptor.vertical_cumulative_energy_transposed[0:round(image_descriptor.width / 2),
-                                                               image_descriptor.height - 1])
+        image_descriptor.vertical_cumulative_energy_transposed[:, round((image_descriptor.height - 1)/2)])
     horizontal_half_seam_max = np.max(
-        image_descriptor.horizontal_cumulative_energy[0:round(image_descriptor.height / 2), image_descriptor.width - 1])
+        image_descriptor.horizontal_cumulative_energy[:, round((image_descriptor.width - 1)/2)])
     horizontal_half_seam_min = np.min(
-        image_descriptor.horizontal_cumulative_energy[0:round(image_descriptor.height / 2), image_descriptor.width - 1])
+        image_descriptor.horizontal_cumulative_energy[:, round((image_descriptor.width - 1)/2)])
     horizontal_half_seam_mean = np.mean(
-        image_descriptor.horizontal_cumulative_energy[0:round(image_descriptor.height / 2), image_descriptor.width - 1])
+        image_descriptor.horizontal_cumulative_energy[:, round((image_descriptor.width - 1)/2)])
 
     result[image_descriptor.image_name] = {
         'vertical_half_seam_max': vertical_half_seam_max,
