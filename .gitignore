@@ -105,3 +105,6 @@ ENV/
 .idea/
 .direnv/
 .envrc
+
+# Image directories
+ldp-algorithm/imagens

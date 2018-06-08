@@ -13,32 +13,34 @@ class LDP:
 	SQRT_2 = np.sqrt(2).astype(np.float32)
 	SQRT_2_DIV_2 = SQRT_2 / 2
 	INTER_POINTS = {1: {1: (1 - SQRT_2_DIV_2, 1 - SQRT_2_DIV_2), 2: (1 - SQRT_2_DIV_2, -1 + SQRT_2_DIV_2),
-	                    3: (-1 + SQRT_2_DIV_2, 1 - SQRT_2_DIV_2), 4: (-1 + SQRT_2_DIV_2, -1 + SQRT_2_DIV_2)},
+	                    3: (-1 + SQRT_2_DIV_2, -1 + SQRT_2_DIV_2), 4: (-1 + SQRT_2_DIV_2, 1 - SQRT_2_DIV_2)},
 	                2: {1: (1 - SQRT_2, 1 - SQRT_2), 2: (1 - SQRT_2, -1 + SQRT_2),
-	                    3: (-1 + SQRT_2, 1 - SQRT_2), 4: (-1 + SQRT_2, -1 + SQRT_2)}}
+	                    3: (-1 + SQRT_2, -1 + SQRT_2), 4: (-1 + SQRT_2, 1 - SQRT_2)}}
 
 	def set_image(self, image):
-		self.image = image
-
 		try:
-			# Shape = image dimensions
-			self.height, self.width, channel = image.shape
 			# Convert image to grayscale
-			self.image = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+			self.image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+			# Shape = image dimensions
+			self.height, self.width = self.image.shape
 		except ValueError:
 			print("Image must be class 'numpy.ndarray'")
 
 	# Bilinear interpolation
 	@staticmethod
 	def bi_inter(matrix, y, x):
-		xn = {1: int(x), 2: x[1] + 1}
-		yn = {1: int(y), 2: y[1] + 1}
+		xn = {1: int(x)}
+		xn[2] = xn[1] + 1
+		yn = {1: int(y)}
+		yn[2] = yn[1] + 1
 		fat = [(xn[2] - x), (yn[2] - y), (x - xn[1]), (y - yn[1])]
 
-		return (1 / (xn[2] - xn[1]) * (yn[2] - yn[1])) * (matrix(xn[1], yn[1]) * fat[0] * fat[1] +
-		                                                  matrix(xn[2], yn[1]) * fat[2] * fat[1] +
-		                                                  matrix(xn[1], yn[2]) * fat[0] * fat[3] +
-		                                                  matrix(xn[2], yn[2]) * fat[2] * fat[3])
+		# In this application, the denominator (xn [2] - xn [1]) * (yn [2] - yn [1]) is always equal to 1
+		try:
+			return (matrix[yn[1], xn[1]] * fat[0] * fat[1] + matrix[yn[1], xn[2]] * fat[2] * fat[1] +
+			        matrix[yn[2], xn[1]] * fat[0] * fat[3] + matrix[yn[2], xn[2]] * fat[2] * fat[3])
+		except IndexError:
+			return 0
 
 	def __init__(self, image):
 		self.image = None
@@ -55,15 +57,12 @@ class LDP:
 
 				for i in range(self.height):
 					for j in range(self.width):
-						try:
-							self.inter_values[radius, corner][i, j] = LDP.bi_inter(image, i +
-							                                                       LDP.INTER_POINTS[radius][corner][
-								                                                       0],
-							                                                       j +
-							                                                       LDP.INTER_POINTS[radius][corner][
-								                                                       1])
-						except ValueError:
-							pass
+						self.inter_values[radius, corner][i, j] = LDP.bi_inter(self.image, i +
+						                                                       LDP.INTER_POINTS[radius][corner][
+							                                                       0],
+						                                                       j +
+						                                                       LDP.INTER_POINTS[radius][corner][
+							                                                       1])
 
 		# For ldp, 1 and 2 mean second and third order respectively
 		for order in LDP.ORDER_INDEXES:
@@ -78,13 +77,13 @@ class LDP:
 
 	@staticmethod
 	def calculate_bin(z0, zi):
-		return 0 if z0 * zi > 0 else 1
+		return 0 if int(z0) * int(zi) > 0 else 1
 
-	def calculate_byte(self, ang, order, radius, i, j):
+	def calculate_byte(self, order, ang, radius, i, j):
 		matrix, _dir = self.derivative[order, ang, radius], self.ldp[order, ang, radius][i, j]
 
-		for corner, (dis_inter, dis) in [(1, (-1, -1), (-1, 0)), (2, (-1, 1), (0, 1)),
-		                                 (3, (1, 1), (1, 0)), (4, (1, -1), (0, -1))]:
+		for corner, dis_inter, dis in [(1, (-1, -1), (-1, 0)), (2, (-1, 1), (0, 1)),
+		                               (3, (1, 1), (1, 0)), (4, (1, -1), (0, -1))]:
 			inter_matrix = self.inter_derivatives[order, ang, radius, corner]
 			_dir <<= 1
 			_dir += LDP.calculate_bin(matrix[i, j], inter_matrix[i + dis_inter[0], j + dis_inter[1]])
@@ -101,9 +100,13 @@ class LDP:
 
 					for i in range(limits[0], self.height - limits[1]):
 						for j in range(limits[1], self.width - limits[0]):
-							self.derivative[order, angle, radius][i, j] = matrix[i, j] - matrix[
-								i + LDP.ANGLE_DIS[angle][0] * radius,
-								j + LDP.ANGLE_DIS[angle][1] * radius]
+							self.derivative[order, angle, radius][i, j] = int(matrix[i, j]) - int(matrix[
+								                                                                      i + LDP.ANGLE_DIS[
+									                                                                      angle][
+									                                                                      0] * radius,
+								                                                                      j + LDP.ANGLE_DIS[
+									                                                                      angle][
+									                                                                      1] * radius])
 
 		for order in LDP.ORDER_INDEXES:
 			for angle in LDP.ANGLE_INDEXES:
@@ -133,6 +136,7 @@ class LDP:
 						for j in range(limits[1], self.width - limits[0]):
 							self.calculate_byte(order, angle, radius, i, j)
 
+		# Calculate histograms
 		for order in LDP.ORDER_INDEXES:
 			for angle in LDP.ANGLE_INDEXES:
 				for radius in LDP.RADIUS_INDEXES:
