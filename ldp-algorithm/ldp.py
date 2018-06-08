@@ -90,6 +90,8 @@ class LDP:
 			_dir <<= 1
 			_dir += LDP.calculate_bin(matrix[i, j], matrix[i + dis[0], j + dis[1]])
 
+		self.ldp[order, ang, radius][i, j] = _dir
+
 	def calculate_features(self):
 		# Calculate derivatives
 		for order in LDP.ORDER_INDEXES:
