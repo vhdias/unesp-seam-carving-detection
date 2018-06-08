@@ -4,6 +4,7 @@ import skimage.feature as sfe
 import skimage.filters as sfi
 import os.path
 from PIL import Image, ImageFile
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
@@ -52,17 +53,23 @@ class ImageDescriptor:
 
         return lbp_image
 
-    def image_gradient(self, image):
+    @staticmethod
+    def image_gradient(image):
         x_derivative = sfi.sobel_h(image)
         y_derivative = sfi.sobel_v(image)
         return x_derivative, y_derivative
 
-    def minimum_cumulative_energy(self, energy):
+    @staticmethod
+    def minimum_cumulative_energy(energy):
         result = numpy.copy(energy)
         m, n = energy.shape
-        for i in range(m):
-            for j in range(1, n):
-                result[i, j] = energy[i, j] + min(result[max(i - 1, 0), j - 1],
-                                                  result[i, j - 1],
-                                                  result[min(i + 1, m - 1), j - 1])
+        for j in range(1, n):
+            result[0, j] += min(result[0, j - 1],
+                                result[1, j - 1])
+            for i in range(1, m - 1):
+                result[i, j] += min(result[i - 1, j - 1],
+                                    result[i, j - 1],
+                                    result[i + 1, j - 1])
+            result[m - 1, j] += min(result[m - 2, j - 1],
+                                    result[m - 1, j - 1])
         return result
