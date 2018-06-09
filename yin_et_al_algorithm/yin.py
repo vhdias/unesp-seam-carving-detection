@@ -2,6 +2,7 @@ import pandas as pd
 import os.path
 import tensorflow as tf
 from yin_et_al_algorithm import descriptor, features
+import time
 from joblib import Parallel, delayed
 
 
@@ -27,7 +28,7 @@ class Yin:
         if self.force:
             for label in self.image_list.list:
                 try:
-                    os.remove('{}_yin.csv'.format(label))
+                    os.rename('{}_yin.csv'.format(label), '{}_yin.{}.csv'.format(label, time.time()))
                 except FileNotFoundError:
                     pass
         for label in self.image_list.list:

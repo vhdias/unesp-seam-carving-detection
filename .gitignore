@@ -106,8 +106,9 @@ ENV/
 .direnv/
 .envrc
 
-# Image directories
-ldp-algorithm/imagens
+# Image files
+*.jpg
+*.jpeg
 
 # CSV files
 *.csv
