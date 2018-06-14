@@ -109,6 +109,7 @@ ENV/
 # Image files
 *.jpg
 *.jpeg
+*.png
 
 # CSV files
 *.csv
