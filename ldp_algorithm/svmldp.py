@@ -25,7 +25,8 @@ class SVMLDP:
 		self.set_not_edited_list(not_edited_path_list)
 		self.num_train_images = len(self.edited_path_list) + len(self.not_edited_path_list)
 
-		self.svm = tf.contrib.learn.SVM(feature_columns=SVMLDP.label_feature_list, example_id_column='example_id')
+		self.svm = tf.contrib.learn.SVM(feature_columns=SVMLDP.label_feature_list, example_id_column='example_id',
+		                                model_dir="./output")
 
 	@staticmethod
 	def input_fn():
@@ -37,6 +38,7 @@ class SVMLDP:
 
 	def fill_features(self, image_paths):
 		for column, image_path in list(enumerate(image_paths)):
+			print("Processing " + image_path + "...")
 			image = LDP(image_path)
 			image.calculate_features()
 
@@ -56,6 +58,7 @@ class SVMLDP:
 		self.column_dict = {'example_id': tf.constant([str(k) for k in range(1, self.num_train_images + 1)])}
 		self.class_list = np.zeros(self.num_train_images, np.uint8)
 		self.class_list[:len(self.edited_path_list)] = 1
+		self.class_list = tf.constant(self.class_list)
 
 		for feature in SVMLDP.label_feature_list:
 			self.column_dict[feature[0]] = np.zeros(self.num_train_images, np.float32)
@@ -86,6 +89,13 @@ for _order in LDP.ORDER_INDEXES:
 	for _angle in LDP.ANGLE_INDEXES:
 		for _radius in LDP.RADIUS_INDEXES:
 			for _byte in range(256):
-				SVMLDP.label_feature_list.append(tf.contrib.layers.real_valued_column('(%d, %d, %d, %d)' %
+				SVMLDP.label_feature_list.append(tf.contrib.layers.real_valued_column('%d_%d_%d_%d' %
 				                                                                      (_order, _angle, _radius, _byte)))
 
+calc_svm = SVMLDP(["imagens/tux.jpg", "imagens/minion.jpg"], ["imagens/tigre.jpg", "imagens/lobo.jpg"])
+calc_svm.fit()
+m = calc_svm.evaluate()
+r = calc_svm.predict(["imagens/minion.jpg", "imagens/lobo.jpg"])
+print(m)
+print(r)
+input("Sair")
