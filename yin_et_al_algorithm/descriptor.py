@@ -7,7 +7,7 @@ import cv2
 
 
 class ImageDescriptor:
-    def __init__(self, image_path):
+    def __init__(self, image_path, save_images=True):
         self.image_path = image_path
         self.image_name = os.path.basename(self.image_path)
         # Convert image to grayscale
@@ -17,9 +17,17 @@ class ImageDescriptor:
         self.image_lbp = self.get_lbp_image(self.image_array_grayscale)
         self.gradient_x, self.gradient_y = self.image_gradient(self.image_lbp)
         self.energy = numpy.abs(self.gradient_x) + numpy.abs(self.gradient_y)
-        self.noise = self.image_lbp - scipy.signal.wiener(self.image_lbp, 5)
+        self.wiener = scipy.signal.wiener(self.image_lbp, 5)
+        self.noise = self.image_lbp - self.wiener
         self.vertical_cumulative_energy_transposed = self.minimum_cumulative_energy(self.energy.transpose())
         self.horizontal_cumulative_energy = self.minimum_cumulative_energy(self.energy)
+        if save_images:
+            path = os.path.join('.', 'processed', 'yin', '{}_' + self.image_name)
+            cv2.imwrite(path.format('lbp'), self.image_lbp)
+            cv2.imwrite(path.format('gx'), self.gradient_x)
+            cv2.imwrite(path.format('gy'), self.gradient_y)
+            cv2.imwrite(path.format('wiener'), self.wiener)
+            cv2.imwrite(path.format('noise'), self.noise)
 
     @staticmethod
     def get_lbp_image(image, p=8, r=1.0, method='default'):
@@ -66,6 +74,7 @@ class ImageDescriptor:
                 result[i, j] += min(result[i - 1, j - 1],
                                     result[i, j - 1],
                                     result[i + 1, j - 1])
+
             result[m - 1, j] += min(result[m - 2, j - 1],
                                     result[m - 1, j - 1])
         return result

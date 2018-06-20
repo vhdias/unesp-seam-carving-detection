@@ -4,6 +4,7 @@ import sys
 import tensorflow as tf
 import lists
 from yin_et_al_algorithm.yin import Yin
+import ldp_algorithm.generate_csv as ldp_csv
 
 
 def ensure_dir_exists(dir_name):
@@ -35,8 +36,13 @@ def main(_):
 
     # Create lists of all the images.
     image_lists = lists.ImageList(FLAGS.image_dir, FLAGS.max_images_per_class, FLAGS.testing_percentage,
-                        FLAGS.validation_percentage)
+                                  FLAGS.validation_percentage)
 
+    # TODO
+    if FLAGS.method == 'YIN':
+        yin = Yin(image_lists)
+    elif FLAGS.method == 'YE_SHI':
+        ldp_csv.LdpCsv(image_lists)
 
 
 if __name__ == '__main__':
