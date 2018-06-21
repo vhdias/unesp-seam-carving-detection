@@ -113,3 +113,9 @@ ENV/
 
 # CSV files
 *.csv
+
+# VS Code
+.vscode/
+
+# Compiled Cython
+*.c

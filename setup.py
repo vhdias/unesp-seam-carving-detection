@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 from setuptools import setup, find_packages
+from Cython.Build import cythonize
+import numpy as np
 
 with open('README.md') as f:
     readme_file = f.read()
@@ -20,5 +22,7 @@ setup(
     author_email='',
     url='https://github.com/wentel/unesp-seam-carving-detection',
     license=license_file,
-    packages=find_packages(exclude=('tests', 'docs'))
+    packages=find_packages(exclude=('tests', 'docs')),
+    ext_modules=cythonize("ldp_algorithm/_ldp.pyx"),
+    include_dirs=[np.get_include()]
 )

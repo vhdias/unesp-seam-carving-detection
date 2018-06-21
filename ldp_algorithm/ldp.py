@@ -2,6 +2,7 @@
 
 import cv2
 import numpy as np
+from ._ldp import bilinear_interpolation
 
 
 class LDP:
@@ -35,22 +36,6 @@ class LDP:
 		except ValueError:
 			print("Image must be class 'numpy.ndarray'")
 
-	# Bilinear interpolation
-	@staticmethod
-	def bi_inter(matrix, y, x):
-		xn = {1: int(x)}
-		xn[2] = xn[1] + 1
-		yn = {1: int(y)}
-		yn[2] = yn[1] + 1
-		fat = [(xn[2] - x), (yn[2] - y), (x - xn[1]), (y - yn[1])]
-
-		# In this application, the denominator (xn [2] - xn [1]) * (yn [2] - yn [1]) is always equal to 1
-		try:
-			return (matrix[yn[1], xn[1]] * fat[0] * fat[1] + matrix[yn[1], xn[2]] * fat[2] * fat[1] +
-			        matrix[yn[2], xn[1]] * fat[0] * fat[3] + matrix[yn[2], xn[2]] * fat[2] * fat[3])
-		except IndexError:
-			return 0
-
 	def __init__(self, image_path):
 		self.image = []
 		self.height, self.width = 0, 0
@@ -66,12 +51,11 @@ class LDP:
 
 				for i in range(self.height):
 					for j in range(self.width):
-						self.inter_values[radius, corner][i, j] = LDP.bi_inter(self.image, i +
-						                                                       LDP.INTER_POINTS[radius][corner][
-							                                                       0],
-						                                                       j +
-						                                                       LDP.INTER_POINTS[radius][corner][
-							                                                       1])
+						self.inter_values[radius, corner][i, j] = bilinear_interpolation(
+							self.image,
+							i + LDP.INTER_POINTS[radius][corner][0],
+							j + LDP.INTER_POINTS[radius][corner][1]
+						)
 
 		# For ldp, 1 and 2 mean second and third order respectively
 		for order in LDP.ORDER_INDEXES:
