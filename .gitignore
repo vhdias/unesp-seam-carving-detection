@@ -113,3 +113,6 @@ ENV/
 
 # CSV files
 *.csv
+
+# Output
+output/
