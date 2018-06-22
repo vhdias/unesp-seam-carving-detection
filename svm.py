@@ -86,7 +86,7 @@ class SVM:
 
 		SVM.column_dict = self.column_dict
 		SVM.class_list = self.class_list
-		self.svm.fit(input_fn=SVM.input_fn, steps=30)
+		self.svm.fit(input_fn=SVM.input_fn, steps=100)
 
 	def evaluate(self):
 		self.column_dict = {'example_id': self.list_dict['seam carved']['validation'] + self.list_dict['untouched']['validation']}
@@ -94,8 +94,8 @@ class SVM:
 
 		SVM.column_dict = self.column_dict
 		SVM.class_list = self.class_list
-		self.metrics = self.svm.evaluate(input_fn=SVM.input_fn)
-		return self.metrics
+		self.metrics = self.svm.evaluate(input_fn=SVM.input_fn, steps=100)
+		return self.metrics['accuracy']
 
 	def predict(self):
 		del self.column_dict['example_id']
@@ -103,7 +103,15 @@ class SVM:
 
 		SVM.column_dict = self.column_dict
 		self.results = self.svm.predict(input_fn=SVM.predict_fn)
-		return self.results
+		class_result = list(map(lambda x: x['classes'], self.results))
+		num_edited = len(self.list_dict['seam carved']['testing'])
+		hit = 0
+
+		for index, clazz in list(enumerate(class_result)):
+			if (index < num_edited and clazz == 1) or (index >= num_edited and clazz == 0):
+				hit += 1
+
+		return hit / (num_edited + len(self.list_dict['untouched']['testing'])) * 100
 
 
 from lists import ImageList
@@ -112,6 +120,7 @@ directory = '/home/jota/Downloads/'
 dic = ImageList(directory + 'seam_images', 500, 10, 10)
 svm = SVM(directory + 'sc.csv', directory + 'nao.csv', dic.list)
 svm.fit()
-metrics = svm.evaluate()
+accuracy = svm.evaluate()
+print("Accuracy", accuracy)
 result = svm.predict()
-input('Sair')
+print("%f%%" % result)
