@@ -4,7 +4,8 @@ import sys
 import tensorflow as tf
 import lists
 from yin_et_al_algorithm.yin import Yin
-import ldp_algorithm.generate_csv as ldp_csv
+from ldp_algorithm.generate_csv import LdpCsv as Ldp
+from svm import SVM
 
 
 def ensure_dir_exists(dir_name):
@@ -40,9 +41,23 @@ def main(_):
 
     # TODO
     if FLAGS.method == 'YIN':
-        yin = Yin(image_lists)
+        yin = Yin(image_lists, n_jobs=FLAGS.threads, save_loop=FLAGS.save_batch, skip=FLAGS.skip)
+        svm = SVM(edited_csv_path='./seam carved_yin.csv', not_edited_csv_path='./untouched_yin.csv',
+                  list_dict=image_lists.list)
+        svm.fit()
+        accuracy = svm.evaluate()
+        print("Accuracy", accuracy)
+        result = svm.predict()
+        print("%f%%" % result)
     elif FLAGS.method == 'YE_SHI':
-        ldp_csv.LdpCsv(image_lists)
+        ldp = Ldp(image_lists, n_jobs=FLAGS.threads, save_loop=FLAGS.save_batch, skip=FLAGS.skip)
+        svm = SVM(edited_csv_path='./seam carved_ldp.csv', not_edited_csv_path='./untouched_ldp.csv',
+                  list_dict=image_lists.list)
+        svm.fit()
+        accuracy = svm.evaluate()
+        print("Accuracy", accuracy)
+        result = svm.predict()
+        print("%f%%" % result)
 
 
 if __name__ == '__main__':
@@ -107,6 +122,24 @@ if __name__ == '__main__':
         type=int,
         default=10,
         help='What percentage of images to use as a validation set.'
+    )
+    parser.add_argument(
+        '--threads',
+        type=int,
+        default=4,
+        help='The number os threads used to get features'
+    )
+    parser.add_argument(
+        '--save_batch',
+        type=int,
+        default=4,
+        help='The number of images that will be processed before save the results'
+    )
+    parser.add_argument(
+        '--skip',
+        type=bool,
+        default=False,
+        help='If true, skip generation of .csv and use the existing one'
     )
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)
