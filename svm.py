@@ -19,7 +19,10 @@ class SVM:
     def set_list_dict(self, list_dict):
         self.list_dict = list_dict
 
-    def __init__(self, edited_csv_path, not_edited_csv_path, list_dict, model_dir='./output'):
+    def set_steps(self, steps):
+        self.steps = steps
+
+    def __init__(self, edited_csv_path, not_edited_csv_path, list_dict, model_dir='./output', steps=100):
         self.edited_data_frame = None
         self.not_edited_data_frame = None
         self.list_dict = None
@@ -28,6 +31,7 @@ class SVM:
         self.set_edited_data_frame(edited_csv_path)
         self.set_not_edited_data_frame(not_edited_csv_path)
         self.model_dir = model_dir
+        self.set_steps(steps)
 
         if self.edited_data_frame.shape[0] != self.not_edited_data_frame.shape[0]:
             raise ValueError('The number of features must be equal in edited e not edited images')
@@ -88,7 +92,7 @@ class SVM:
 
         SVM.column_dict = self.column_dict
         SVM.class_list = self.class_list
-        self.svm.fit(input_fn=SVM.input_fn, steps=100)
+        self.svm.fit(input_fn=SVM.input_fn, steps=self.steps)
 
     def evaluate(self):
         self.column_dict = {
@@ -97,7 +101,7 @@ class SVM:
 
         SVM.column_dict = self.column_dict
         SVM.class_list = self.class_list
-        self.metrics = self.svm.evaluate(input_fn=SVM.input_fn, steps=100)
+        self.metrics = self.svm.evaluate(input_fn=SVM.input_fn, steps=self.steps)
         return self.metrics['accuracy']
 
     def predict(self):

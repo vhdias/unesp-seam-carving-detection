@@ -19,9 +19,10 @@ def ensure_dir_exists(dir_name):
 
 def prepare_file_system():
     # Setup the directory we'll write summaries to for TensorBoard
-    if tf.gfile.Exists(FLAGS.summaries_dir):
-        tf.gfile.DeleteRecursively(FLAGS.summaries_dir)
-    tf.gfile.MakeDirs(FLAGS.summaries_dir)
+    if not FLAGS.keep_old_values:
+        if tf.gfile.Exists(FLAGS.summaries_dir):
+            tf.gfile.DeleteRecursively(FLAGS.summaries_dir)
+        tf.gfile.MakeDirs(FLAGS.summaries_dir)
     if FLAGS.intermediate_store_frequency > 0:
         ensure_dir_exists(FLAGS.intermediate_output_graphs_dir)
     return
@@ -41,18 +42,20 @@ def main(_):
 
     # TODO
     if FLAGS.method == 'YIN':
-        yin = Yin(image_lists, n_jobs=FLAGS.threads, save_loop=FLAGS.save_batch, skip=FLAGS.skip)
+        yin = Yin(image_lists, n_jobs=FLAGS.threads, save_loop=FLAGS.save_batch, skip=FLAGS.skip, force=FLAGS.force)
+        model_dir = os.path.join(FLAGS.summaries_dir, 'yin')
         svm = SVM(edited_csv_path='./seam carved_yin.csv', not_edited_csv_path='./untouched_yin.csv',
-                  list_dict=image_lists.list)
+                  list_dict=image_lists.list, steps=FLAGS.steps, model_dir=model_dir)
         svm.fit()
         accuracy = svm.evaluate()
         print("Accuracy", accuracy)
         result = svm.predict()
         print("%f%%" % result)
     elif FLAGS.method == 'YE_SHI':
-        ldp = Ldp(image_lists, n_jobs=FLAGS.threads, save_loop=FLAGS.save_batch, skip=FLAGS.skip)
+        ldp = Ldp(image_lists, n_jobs=FLAGS.threads, save_loop=FLAGS.save_batch, skip=FLAGS.skip, force=FLAGS.force)
+        model_dir = os.path.join(FLAGS.summaries_dir, 'ye_shi')
         svm = SVM(edited_csv_path='./seam carved_ldp.csv', not_edited_csv_path='./untouched_ldp.csv',
-                  list_dict=image_lists.list)
+                  list_dict=image_lists.list, steps=FLAGS.steps, model_dir=model_dir)
         svm.fit()
         accuracy = svm.evaluate()
         print("Accuracy", accuracy)
@@ -140,6 +143,24 @@ if __name__ == '__main__':
         type=bool,
         default=False,
         help='If true, skip generation of .csv and use the existing one'
+    )
+    parser.add_argument(
+        '--force',
+        type=bool,
+        default=False,
+        help='If true, when generating the csv, not use data of old csv'
+    )
+    parser.add_argument(
+        '--steps',
+        type=int,
+        default=100,
+        help='Number of steps used to train and evaluate'
+    )
+    parser.add_argument(
+        '--keep_old_values',
+        type=bool,
+        default=False,
+        help='Keep old TensorFlow log outputs'
     )
     FLAGS, unparsed = parser.parse_known_args()
     tf.app.run(main=main, argv=[sys.argv[0]] + unparsed)

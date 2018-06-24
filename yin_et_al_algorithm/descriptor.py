@@ -12,10 +12,8 @@ class ImageDescriptor:
         self.image_name = os.path.basename(self.image_path)
         # Convert image to grayscale
         self.image_array_grayscale = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        self.height, self.width = self.image_array_grayscale.shape
-        self.size = self.image_array_grayscale.size
-        self.image_lbp = self.get_lbp_image(self.image_array_grayscale)
-        self.gradient_x, self.gradient_y = self.image_gradient(self.image_lbp)
+        self.image_lbp = ImageDescriptor.get_lbp_image(self.image_array_grayscale)
+        self.gradient_x, self.gradient_y = ImageDescriptor.image_gradient(self.image_lbp)
         self.energy = numpy.abs(self.gradient_x) + numpy.abs(self.gradient_y)
         self.wiener = scipy.signal.wiener(self.image_lbp, 5)
         self.noise = self.image_lbp - self.wiener
@@ -59,8 +57,8 @@ class ImageDescriptor:
 
     @staticmethod
     def image_gradient(image):
-        x_derivative = sfi.sobel_h(image)
-        y_derivative = sfi.sobel_v(image)
+        x_derivative = sfi.sobel_h(image)[1:image.shape[0]-1, 1:image.shape[1]-1]
+        y_derivative = sfi.sobel_v(image)[1:image.shape[0]-1, 1:image.shape[1]-1]
         return x_derivative, y_derivative
 
     @staticmethod

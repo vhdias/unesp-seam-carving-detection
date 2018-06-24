@@ -17,7 +17,7 @@ class Yin:
         self.generate_csv()
 
     def generate_csv(self):
-        if self.skip and not self.force:
+        if self.skip:
             for label in self.image_list.list:
                 try:
                     df = pd.read_csv('{}_yin.csv'.format(label), index_col=0)
